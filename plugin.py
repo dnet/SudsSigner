@@ -69,29 +69,17 @@ class SignerPlugin(MessagePlugin):
             (body,) = BODY_XPATH(env)
             body.set(ns_id('Id', wsuns), SIGNED_ID)
             security = ensure_security_header(env)
-            signature = etree.SubElement(security, ns_id('Signature', dsns))
-            self.append_signed_info(signature)
-
-            etree.SubElement(signature, ns_id('SignatureValue', dsns))
-
-            key_info = etree.SubElement(signature, ns_id('KeyInfo', dsns))
-            sec_token_ref = etree.SubElement(key_info,
-                    ns_id('SecurityTokenReference', wssens))
-            x509_data = etree.SubElement(sec_token_ref, ns_id('X509Data', dsns))
-            x509_issuer_serial = etree.SubElement(x509_data,
-                    ns_id('X509IssuerSerial', dsns))
-            x509_issuer_name = etree.SubElement(x509_issuer_serial,
-                    ns_id('X509IssuerName', dsns))
-            x509_issuer_name.text = ', '.join(
-                    '='.join(c) for c in self.cert.get_issuer().get_components())
-            x509_serial_number = etree.SubElement(x509_issuer_serial,
-                    ns_id('X509SerialNumber', dsns))
-            x509_serial_number.text = str(self.cert.get_serial_number())
-
+            self.insert_signature_template(security)
             context.envelope = self.get_signature(etree.tostring(env))
         except Exception as e:
             print e
             raise
+
+    def insert_signature_template(self, security):
+        signature = etree.SubElement(security, ns_id('Signature', dsns))
+        self.append_signed_info(signature)
+        etree.SubElement(signature, ns_id('SignatureValue', dsns))
+        self.append_key_info(signature)
 
     def append_signed_info(self, signature):
         signed_info = etree.SubElement(signature, ns_id('SignedInfo', dsns))
@@ -105,6 +93,21 @@ class SignerPlugin(MessagePlugin):
         set_algorithm(reference, 'DigestMethod',
                 'http://www.w3.org/2000/09/xmldsig#sha1')
         etree.SubElement(reference, ns_id('DigestValue', dsns))
+
+    def append_key_info(self, signature):
+        key_info = etree.SubElement(signature, ns_id('KeyInfo', dsns))
+        sec_token_ref = etree.SubElement(key_info,
+                ns_id('SecurityTokenReference', wssens))
+        x509_data = etree.SubElement(sec_token_ref, ns_id('X509Data', dsns))
+        x509_issuer_serial = etree.SubElement(x509_data,
+                ns_id('X509IssuerSerial', dsns))
+        x509_issuer_name = etree.SubElement(x509_issuer_serial,
+                ns_id('X509IssuerName', dsns))
+        x509_issuer_name.text = ', '.join(
+                '='.join(c) for c in self.cert.get_issuer().get_components())
+        x509_serial_number = etree.SubElement(x509_issuer_serial,
+                ns_id('X509SerialNumber', dsns))
+        x509_serial_number.text = str(self.cert.get_serial_number())
 
     def get_signature(self, envelope):
         with LibXML2ParsedDocument(envelope) as doc:
