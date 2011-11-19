@@ -7,6 +7,8 @@ from suds.bindings.binding import envns
 from suds.wsse import wsuns, dsns, wssens
 from libxml2_wrapper import LibXML2ParsedDocument
 from xmlsec_wrapper import XmlSecSignatureContext, init_xmlsec, deinit_xmlsec
+from SignatureMethods import DSA, RSA
+from OpenSSL import crypto
 
 import xmlsec
 
@@ -29,10 +31,16 @@ class SignerPlugin(MessagePlugin):
             pwdCallbackCtx=None):
         init_xmlsec()
         self.keyfile = keyfile
-        self.keytype = self.handle_keytype(keytype)
         self.pwd = pwd
         self.pwdCallback = pwdCallback
         self.pwdCallbackCtx = pwdCallbackCtx
+        self.load_keyfile()
+        self.keytype = self.handle_keytype(keytype)
+
+    def load_keyfile(self):
+        with file(self.keyfile, 'rb') as keyfile:
+            self.cert = crypto.load_certificate(crypto.FILETYPE_PEM,
+                    keyfile.read())
 
     def handle_keytype(self, keytype):
         if keytype is None:
@@ -43,7 +51,12 @@ class SignerPlugin(MessagePlugin):
             raise ValueError('keytype must be a string or None')
 
     def detect_keytype(self):
-        raise NotImplementedError()
+        algo = self.cert.get_signature_algorithm()
+        if algo.startswith('dsa'):
+            return DSA
+        if algo.startswith('rsa'):
+            return RSA
+        raise ValueError('unknown keytype')
 
     def sending(self, context):
         try:
