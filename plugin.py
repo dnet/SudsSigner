@@ -4,7 +4,8 @@ from suds.plugin import MessagePlugin
 from lxml import etree
 from suds.bindings.binding import envns
 from suds.wsse import wsuns, dsns, wssens
-from libxml2_wrapper import LibXML2ParsedDocument, XmlSecSignatureContext, init_xmlsec, deinit_xmlsec
+from libxml2_wrapper import LibXML2ParsedDocument
+from xmlsec_wrapper import XmlSecSignatureContext, init_xmlsec, deinit_xmlsec
 
 import xmlsec
 
