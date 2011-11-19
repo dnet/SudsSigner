@@ -41,6 +41,11 @@ class SignerPlugin(MessagePlugin):
         with file(self.keyfile, 'rb') as keyfile:
             self.cert = crypto.load_certificate(crypto.FILETYPE_PEM,
                     keyfile.read())
+        self.signer_key = xmlsec.cryptoAppKeyLoad(self.keyfile,
+                xmlsec.KeyDataFormatPem, self.pwd, self.pwdCallback,
+                self.pwdCallbackCtx)
+        if self.signer_key is None:
+            raise RuntimeError('failed to load private pem key')
 
     def handle_keytype(self, keytype):
         if keytype is None:
@@ -106,17 +111,10 @@ class SignerPlugin(MessagePlugin):
             xmlsec.addIDs(doc, root, ['Id'])
             signNode = xmlsec.findNode(root, xmlsec.NodeSignature, xmlsec.DSigNs)
             with XmlSecSignatureContext() as dsig_ctx:
-                dsig_ctx.signKey = self.get_key()
+                dsig_ctx.signKey = self.signer_key
                 if dsig_ctx.sign(signNode) < 0:
                     raise RuntimeError('signature failed')
                 return doc.serialize()
-
-    def get_key(self):
-        key = xmlsec.cryptoAppKeyLoad(self.keyfile, xmlsec.KeyDataFormatPem,
-                self.pwd, self.pwdCallback, self.pwdCallbackCtx)
-        if key is None:
-            raise RuntimeError('failed to load private pem key')
-        return key
 
     def __del__(self):
         deinit_xmlsec()
