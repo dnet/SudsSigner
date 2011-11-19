@@ -51,19 +51,7 @@ class SignerPlugin(MessagePlugin):
             body.set(ns_id('Id', wsuns), SIGNED_ID)
             security = ensure_security_header(env)
             signature = etree.SubElement(security, ns_id('Signature', dsns))
-            signed_info = etree.SubElement(signature, ns_id('SignedInfo', dsns))
-
-            set_algorithm(signed_info, 'CanonicalizationMethod', C14N)
-            set_algorithm(signed_info, 'SignatureMethod', self.keytype)
-
-            reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
-                    {'URI': '#{0}'.format(SIGNED_ID)})
-            transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
-            etree.SubElement(transforms, ns_id('Transform', dsns),
-                    {'Algorithm': C14N})
-            set_algorithm(reference, 'DigestMethod',
-                    'http://www.w3.org/2000/09/xmldsig#sha1')
-            etree.SubElement(reference, ns_id('DigestValue', dsns))
+            self.append_signed_info(signature)
 
             etree.SubElement(signature, ns_id('SignatureValue', dsns))
 
@@ -84,6 +72,19 @@ class SignerPlugin(MessagePlugin):
         except Exception as e:
             print e
             raise
+
+    def append_signed_info(self, signature):
+        signed_info = etree.SubElement(signature, ns_id('SignedInfo', dsns))
+        set_algorithm(signed_info, 'CanonicalizationMethod', C14N)
+        set_algorithm(signed_info, 'SignatureMethod', self.keytype)
+        reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
+                {'URI': '#{0}'.format(SIGNED_ID)})
+        transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
+        etree.SubElement(transforms, ns_id('Transform', dsns),
+                {'Algorithm': C14N})
+        set_algorithm(reference, 'DigestMethod',
+                'http://www.w3.org/2000/09/xmldsig#sha1')
+        etree.SubElement(reference, ns_id('DigestValue', dsns))
 
     def get_signature(self, envelope):
         with LibXML2ParsedDocument(envelope) as doc:
