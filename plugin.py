@@ -82,10 +82,11 @@ class SignerPlugin(MessagePlugin):
                     ns_id('X509IssuerSerial', dsns))
             x509_issuer_name = etree.SubElement(x509_issuer_serial,
                     ns_id('X509IssuerName', dsns))
-            x509_issuer_name.text = 'CN=Arena'
+            x509_issuer_name.text = ', '.join(
+                    '='.join(c) for c in self.cert.get_issuer().get_components())
             x509_serial_number = etree.SubElement(x509_issuer_serial,
                     ns_id('X509SerialNumber', dsns))
-            x509_serial_number.text = '1321699512'
+            x509_serial_number.text = str(self.cert.get_serial_number())
 
             context.envelope = self.get_signature(etree.tostring(env))
         except Exception as e:
