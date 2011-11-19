@@ -53,18 +53,16 @@ class SignerPlugin(MessagePlugin):
             signature = etree.SubElement(security, ns_id('Signature', dsns))
             signed_info = etree.SubElement(signature, ns_id('SignedInfo', dsns))
 
-            etree.SubElement(signed_info, ns_id('CanonicalizationMethod', dsns),
-                    {'Algorithm': C14N})
-            etree.SubElement(signed_info, ns_id('SignatureMethod', dsns),
-                    {'Algorithm': self.keytype})
+            set_algorithm(signed_info, 'CanonicalizationMethod', C14N)
+            set_algorithm(signed_info, 'SignatureMethod', self.keytype)
 
             reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
                     {'URI': '#{0}'.format(SIGNED_ID)})
             transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
             etree.SubElement(transforms, ns_id('Transform', dsns),
                     {'Algorithm': C14N})
-            etree.SubElement(reference, ns_id('DigestMethod', dsns),
-                {'Algorithm': 'http://www.w3.org/2000/09/xmldsig#sha1'})
+            set_algorithm(reference, 'DigestMethod',
+                    'http://www.w3.org/2000/09/xmldsig#sha1')
             etree.SubElement(reference, ns_id('DigestValue', dsns))
 
             etree.SubElement(signature, ns_id('SignatureValue', dsns))
@@ -107,6 +105,9 @@ class SignerPlugin(MessagePlugin):
 
     def __del__(self):
         deinit_xmlsec()
+
+def set_algorithm(parent, name, value):
+    etree.SubElement(parent, ns_id(name, dsns), {'Algorithm': value})
 
 def ensure_security_header(env):
     (header,) = HEADER_XPATH(env)
