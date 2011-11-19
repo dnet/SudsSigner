@@ -64,16 +64,12 @@ class SignerPlugin(MessagePlugin):
         raise ValueError('unknown keytype')
 
     def sending(self, context):
-        try:
-            env = etree.fromstring(context.envelope)
-            (body,) = BODY_XPATH(env)
-            body.set(ns_id('Id', wsuns), SIGNED_ID)
-            security = ensure_security_header(env)
-            self.insert_signature_template(security)
-            context.envelope = self.get_signature(etree.tostring(env))
-        except Exception as e:
-            print e
-            raise
+        env = etree.fromstring(context.envelope)
+        (body,) = BODY_XPATH(env)
+        body.set(ns_id('Id', wsuns), SIGNED_ID)
+        security = ensure_security_header(env)
+        self.insert_signature_template(security)
+        context.envelope = self.get_signature(etree.tostring(env))
 
     def insert_signature_template(self, security):
         signature = etree.SubElement(security, ns_id('Signature', dsns))
