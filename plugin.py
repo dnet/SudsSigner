@@ -57,7 +57,7 @@ class SignerPlugin(MessagePlugin):
 					{'Algorithm': C14N})
 			etree.SubElement(reference, ns_id('DigestMethod', dsns),
 				{'Algorithm': 'http://www.w3.org/2000/09/xmldsig#sha1'})
-			digest_value = etree.SubElement(reference, ns_id('DigestValue', dsns))
+			etree.SubElement(reference, ns_id('DigestValue', dsns))
 
 			etree.SubElement(signature, ns_id('SignatureValue', dsns))
 
