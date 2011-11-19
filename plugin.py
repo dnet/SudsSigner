@@ -24,8 +24,25 @@ C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
 NSMAP = dict((dsns, wssens, wsuns))
 
 class SignerPlugin(MessagePlugin):
-    def __init__(self):
+    def __init__(self, keyfile, keytype=None, pwd=None, pwdCallback=None,
+            pwdCallbackCtx=None):
         init_xmlsec()
+        self.keyfile = keyfile
+        self.keytype = self.handle_keytype(keytype)
+        self.pwd = pwd
+        self.pwdCallback = pwdCallback
+        self.pwdCallbackCtx = pwdCallbackCtx
+
+    def handle_keytype(self, keytype):
+        if keytype is None:
+            return self.detect_keytype()
+        elif any(isinstance(keytype, t) for t in (str, unicode)):
+            return keytype
+        else:
+            raise ValueError('keytype must be a string or None')
+
+    def detect_keytype(self):
+        raise NotImplementedError()
 
     def sending(self, context):
         try:
@@ -39,7 +56,7 @@ class SignerPlugin(MessagePlugin):
             etree.SubElement(signed_info, ns_id('CanonicalizationMethod', dsns),
                     {'Algorithm': C14N})
             etree.SubElement(signed_info, ns_id('SignatureMethod', dsns),
-                    {'Algorithm': 'http://www.w3.org/2000/09/xmldsig#dsa-sha1'})
+                    {'Algorithm': self.keytype})
 
             reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
                     {'URI': '#{0}'.format(SIGNED_ID)})
@@ -82,8 +99,8 @@ class SignerPlugin(MessagePlugin):
                 return doc.serialize()
 
     def get_key(self):
-        key = xmlsec.cryptoAppKeyLoad('../keys/privkey.pem', xmlsec.KeyDataFormatPem, # XXX
-                None, None, None)
+        key = xmlsec.cryptoAppKeyLoad(self.keyfile, xmlsec.KeyDataFormatPem,
+                self.pwd, self.pwdCallback, self.pwdCallbackCtx)
         if key is None:
             raise RuntimeError('failed to load private pem key')
         return key
