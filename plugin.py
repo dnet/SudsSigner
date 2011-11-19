@@ -5,17 +5,7 @@ from lxml import etree
 from suds.bindings.binding import envns
 from suds.wsse import wsuns, dsns, wssens
 from libxml2_wrapper import LibXML2ParsedDocument, XmlSecSignatureContext, init_xmlsec, deinit_xmlsec
-from base64 import b64encode
-try:
-	from hashlib import sha1
-except ImportError:
-	import sha1
-try:
-	from cStringIO import StringIO
-except ImportError:
-	from StringIO import StringIO
 
-import sys
 import xmlsec
 
 def lxml_ns(suds_ns):
