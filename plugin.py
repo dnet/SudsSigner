@@ -24,6 +24,7 @@ HEADER_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Header', namespaces=LXML
 SECURITY_XPATH = etree.XPath('/wsse:Security', namespaces=lxml_ns(wssens))
 SIGNED_ID = 'suds-signed'
 C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
+XMLDSIG_SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1'
 NSMAP = dict((dsns, wssens, wsuns))
 
 class SignerPlugin(MessagePlugin):
@@ -85,8 +86,7 @@ class SignerPlugin(MessagePlugin):
                 {'URI': '#{0}'.format(SIGNED_ID)})
         transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
         set_algorithm(transforms, 'Transform', C14N)
-        set_algorithm(reference, 'DigestMethod',
-                'http://www.w3.org/2000/09/xmldsig#sha1')
+        set_algorithm(reference, 'DigestMethod', XMLDSIG_SHA1)
         etree.SubElement(reference, ns_id('DigestValue', dsns))
 
     def append_key_info(self, signature):
