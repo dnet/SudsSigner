@@ -84,8 +84,7 @@ class SignerPlugin(MessagePlugin):
         reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
                 {'URI': '#{0}'.format(SIGNED_ID)})
         transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
-        etree.SubElement(transforms, ns_id('Transform', dsns),
-                {'Algorithm': C14N})
+        set_algorithm(transforms, 'Transform', C14N)
         set_algorithm(reference, 'DigestMethod',
                 'http://www.w3.org/2000/09/xmldsig#sha1')
         etree.SubElement(reference, ns_id('DigestValue', dsns))
