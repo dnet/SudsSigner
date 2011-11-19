@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
 from suds.plugin import MessagePlugin
 from lxml import etree
 from suds.bindings.binding import envns
