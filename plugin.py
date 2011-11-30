@@ -23,6 +23,7 @@ LXML_ENV = lxml_ns(envns)
 BODY_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Body', namespaces=LXML_ENV)
 HEADER_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Header', namespaces=LXML_ENV)
 SECURITY_XPATH = etree.XPath('wsse:Security', namespaces=lxml_ns(wssens))
+TIMESTAMP_XPATH = etree.XPath('wsu:Timestamp', namespaces=lxml_ns(wsuns))
 C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
 XMLDSIG_SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1'
 NSMAP = dict((dsns, wssens, wsuns))
@@ -64,7 +65,7 @@ class SignerPlugin(MessagePlugin):
         (body,) = BODY_XPATH(env)
         queue = SignQueue()
         queue.push_and_mark(body)
-        security = ensure_security_header(env)
+        security = ensure_security_header(env, queue)
         self.insert_signature_template(security, queue)
         context.envelope = self.get_signature(etree.tostring(env))
 
@@ -137,10 +138,12 @@ def get_unique_id():
 def set_algorithm(parent, name, value):
     etree.SubElement(parent, ns_id(name, dsns), {'Algorithm': value})
 
-def ensure_security_header(env):
+def ensure_security_header(env, queue):
     (header,) = HEADER_XPATH(env)
     security = SECURITY_XPATH(header)
     if security:
+        for timestamp in TIMESTAMP_XPATH(security[0]):
+            queue.push_and_mark(timestamp)
         return security[0]
     else:
         return etree.SubElement(header, ns_id('Security', wssens),
