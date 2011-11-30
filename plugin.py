@@ -22,7 +22,7 @@ def ns_id(tagname, suds_ns):
 LXML_ENV = lxml_ns(envns)
 BODY_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Body', namespaces=LXML_ENV)
 HEADER_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Header', namespaces=LXML_ENV)
-SECURITY_XPATH = etree.XPath('/wsse:Security', namespaces=lxml_ns(wssens))
+SECURITY_XPATH = etree.XPath('wsse:Security', namespaces=lxml_ns(wssens))
 C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
 XMLDSIG_SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1'
 NSMAP = dict((dsns, wssens, wsuns))
