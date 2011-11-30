@@ -9,6 +9,7 @@ from libxml2_wrapper import LibXML2ParsedDocument
 from xmlsec_wrapper import XmlSecSignatureContext, init_xmlsec, deinit_xmlsec
 from SignatureMethods import DSA, RSA
 from OpenSSL import crypto
+from uuid import uuid4
 
 import xmlsec
 
@@ -22,7 +23,6 @@ LXML_ENV = lxml_ns(envns)
 BODY_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Body', namespaces=LXML_ENV)
 HEADER_XPATH = etree.XPath('/SOAP-ENV:Envelope/SOAP-ENV:Header', namespaces=LXML_ENV)
 SECURITY_XPATH = etree.XPath('/wsse:Security', namespaces=lxml_ns(wssens))
-SIGNED_ID = 'suds-signed'
 C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
 XMLDSIG_SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1'
 NSMAP = dict((dsns, wssens, wsuns))
@@ -62,27 +62,23 @@ class SignerPlugin(MessagePlugin):
     def sending(self, context):
         env = etree.fromstring(context.envelope)
         (body,) = BODY_XPATH(env)
-        body.set(ns_id('Id', wsuns), SIGNED_ID)
+        queue = SignQueue()
+        queue.push_and_mark(body)
         security = ensure_security_header(env)
-        self.insert_signature_template(security)
+        self.insert_signature_template(security, queue)
         context.envelope = self.get_signature(etree.tostring(env))
 
-    def insert_signature_template(self, security):
+    def insert_signature_template(self, security, queue):
         signature = etree.SubElement(security, ns_id('Signature', dsns))
-        self.append_signed_info(signature)
+        self.append_signed_info(signature, queue)
         etree.SubElement(signature, ns_id('SignatureValue', dsns))
         self.append_key_info(signature)
 
-    def append_signed_info(self, signature):
+    def append_signed_info(self, signature, queue):
         signed_info = etree.SubElement(signature, ns_id('SignedInfo', dsns))
         set_algorithm(signed_info, 'CanonicalizationMethod', C14N)
         set_algorithm(signed_info, 'SignatureMethod', self.keytype)
-        reference = etree.SubElement(signed_info, ns_id('Reference', dsns),
-                {'URI': '#{0}'.format(SIGNED_ID)})
-        transforms = etree.SubElement(reference, ns_id('Transforms', dsns))
-        set_algorithm(transforms, 'Transform', C14N)
-        set_algorithm(reference, 'DigestMethod', XMLDSIG_SHA1)
-        etree.SubElement(reference, ns_id('DigestValue', dsns))
+        queue.insert_references(signed_info)
 
     def append_key_info(self, signature):
         key_info = etree.SubElement(signature, ns_id('KeyInfo', dsns))
@@ -111,6 +107,32 @@ class SignerPlugin(MessagePlugin):
 
     def __del__(self):
         deinit_xmlsec()
+
+class SignQueue(object):
+    WSU_ID = ns_id('Id', wsuns)
+    DS_DIGEST_VALUE = ns_id('DigestValue', dsns)
+    DS_REFERENCE = ns_id('Reference', dsns)
+    DS_TRANSFORMS = ns_id('Transforms', dsns)
+
+    def __init__(self):
+        self.queue = []
+
+    def push_and_mark(self, element):
+        unique_id = get_unique_id()
+        element.set(self.WSU_ID, unique_id)
+        self.queue.append(unique_id)
+
+    def insert_references(self, signed_info):
+        for element_id in self.queue:
+            reference = etree.SubElement(signed_info, self.DS_REFERENCE,
+                    {'URI': '#{0}'.format(element_id)})
+            transforms = etree.SubElement(reference, self.DS_TRANSFORMS)
+            set_algorithm(transforms, 'Transform', C14N)
+            set_algorithm(reference, 'DigestMethod', XMLDSIG_SHA1)
+            etree.SubElement(reference, self.DS_DIGEST_VALUE)
+
+def get_unique_id():
+    return 'id-{0}'.format(uuid4())
 
 def set_algorithm(parent, name, value):
     etree.SubElement(parent, ns_id(name, dsns), {'Algorithm': value})
